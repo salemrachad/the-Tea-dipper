@@ -24,11 +24,11 @@ Servo myservo;
 int pos = 0;    // variable to store the servo position
 String menu, black, green, chinese, herbal, earlgrey;
 long dipTime;
-long teatimer[] = {0, 5000, 10000, 20000, 30000, 180000};
+unsigned long teatimer[] = {0, 5000, 10000, 20000, 30000, 180000};
 String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
 
 int gstate;
-int dipstate =1;
+int dipstate = 1;
 int teastate = 0;
 
 const int buttonPin2 = 2;
@@ -44,9 +44,12 @@ int lastButtonState3 = LOW;
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
+unsigned long dif;
+unsigned long currentTime = 0;
 unsigned long delayStart = 0; // the time the delay started
 bool delayRunning = false; // true if still waiting for delay to finish
 
+unsigned long time_now = 0;
 signed short minutes, secondes;
 char timeline[16];
 bool started = false;
@@ -65,10 +68,14 @@ void setup() {
   gstate = 0;
   dipstate = 1;
 
+
 }
 void loop() {
+
   button_changeState();
   StartDipButton();
+  Serial.println(teatimer[gstate]);
+
 
   if (gstate == 0) {  //menu
     lcd.setCursor(0, 0);
@@ -79,8 +86,7 @@ void loop() {
     lcd.setCursor(0, 0);
     lcd.print(teanames[gstate]);
     lcd.setCursor(0, 1);
-      timerDisplay();
-    }
+     printTimer();
   }
 }
 
@@ -88,9 +94,8 @@ void dip(long _Time) {
   lcd.blink();
   started = true;
   dipstate = 2;
-
-
   dipTime = _Time;
+
   for (pos = 100; pos <= 250; pos += 2) { // goes from 0 degrees to 180 degrees
     // in steps of 1 degree
     myservo.write(pos);              // tell servo to go to position in variable 'pos'
@@ -109,6 +114,7 @@ void dip(long _Time) {
   lcd.print("Done!");
   started = false;
   delay(3000);
+  reset();
 }
 
 void button_changeState() {
@@ -129,10 +135,7 @@ void button_changeState() {
       // only toggle if the new button state is HIGH
       if (buttonState2 == HIGH) {
         lcd.clear();
-        Serial.print("dipstate : ");
-        Serial.println(dipstate);
-        Serial.print("gstate : ");
-        Serial.println(gstate);
+
         if (gstate < 5) {
           gstate = gstate + 1;
         } else {
@@ -161,15 +164,11 @@ void StartDipButton() {
 
       // only toggle if the new button state is HIGH
       if (buttonState3 == HIGH) {
+        started = true;
         dipstate = 2;
-        Serial.print("dipstate : ");
-        Serial.println(dipstate);
-        Serial.print("gstate : ");
-        Serial.print(gstate);
         if (gstate == 0) {
           myservo.write(100); //reset servo position
         } else
-          delayStart = millis;
           dip(teatimer[gstate]);
       }
     }
@@ -177,37 +176,30 @@ void StartDipButton() {
   lastButtonState3 = reading;
 }
 
-
-
 void reset() {
   dipstate = 0;
   gstate = 0;
+  started = false;
   lcd.clear();
   lcd.noBlink();
-
 }
-void timerDisplay(){
 
-minutes = teatimer[gstate];
-secondes = 59;
+void printTimer() {
+  if(started==true) {
+    unsigned long currentTime = millis();
 
-lcd.setCursor(0, 1);
-sprintf(timeline,"%0.2d:%0.2d", minutes, secondes);
-lcd.print(timeline);
+    if (currentTime - previousTime>=teatimer[gstate]){
+    previoustime = currentTime;
+    }
+    unsigned long dif = teatimer[gstate] - currentTime;
 
-if(started){}
-delay(1000);
-secondes--;
-
-if (secondes == 0)
-{
-  delay(1000);
-  secondes = 59;
-  minutes --;
-  if (minutes < 0){
-    minutes = 2;
-    secondes = 59;
+    lcd.setCursor(0, 1);
+    sprintf(timeline, "%0.4d", dif);
+    lcd.print(timeline);
+  } if (started == false){
+    unsigned long dif = teatimer[gstate];
+    lcd.setCursor(0,1);
+    sprintf(timeline, "%0.4d", dif);
+    lcd.print(timeline);
   }
-}
-}
 }
