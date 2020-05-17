@@ -22,13 +22,13 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 Servo myservo;
 
 int pos = 0;    // variable to store the servo position
-String menu,black,green,chinese,herbal,earlgrey;
+String menu, black, green, chinese, herbal, earlgrey;
 long dipTime;
 long teatimer[] = {0, 5000, 10000, 20000, 30000, 180000};
-String teanames[] = {menu, black, green, chinese, herbal, earlgrey};
+String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
 
 int gstate;
-int dipstate = 0;
+int dipstate =1;
 int teastate = 0;
 
 const int buttonPin2 = 2;
@@ -47,6 +47,7 @@ unsigned long debounceDelay = 50;    // the debounce time; increase if the outpu
 unsigned long delayStart = 0; // the time the delay started
 bool delayRunning = false; // true if still waiting for delay to finish
 float Currentteatime;
+float currentTimerTime;
 
 void setup() {
   Serial.begin(9600);
@@ -60,12 +61,13 @@ void setup() {
   delay(5000);
   myservo.write(100);
   gstate = 0;
+  dipstate = 1;
 }
 void loop() {
   button_changeState();
   StartDipButton();
 
-  if (gstate == 0) {
+  if (gstate == 0) {  //menu
     lcd.setCursor(0, 0);
     lcd.print("I'ts tea Time ");
     lcd.setCursor(0, 1);
@@ -73,47 +75,36 @@ void loop() {
   } else {
     lcd.setCursor(0, 0);
     lcd.print(teanames[gstate]);
-    lcd.setCursor(0,1);
-    lcd.print(teatimer[gstate]);
+    lcd.setCursor(0, 1);
+    if ((dipstate == 1) &&(gstate!=0)) {
+      lcd.print(teatimer[gstate] / 1000);
+    }
+    else if ((dipstate == 2)&&(gstate!=0)) {
+      currentTimerTime = millis() - delayStart;
+      long dftimer = teatimer[gstate]-currentTimerTime;
+      lcd.print(currentTimerTime);
+      lcd.setCursor(5, 1);
+      lcd.print("seconds");
+    }
+//    lcd.setCursor(0, 0);
+//    lcd.print(teanames[gstate]);
+//    lcd.setCursor(0, 1);
+//    lcd.print(teatimer[gstate] / 1000);
   }
-//  switch (gstate) {
-//    case 0:
-//      lcd.setCursor(0, 0);
-//      lcd.print("I'ts tea Time ");
-//      lcd.setCursor(0, 1);
-//      lcd.print("<- Press Button");
-//      break;
-//    case 1:
-//      lcd.setCursor(0, 0);
-//      lcd.print("Black Tea");
-//      break;
-//    case 2:
-//      lcd.setCursor(0, 0);
-//      lcd.print("Green Tea");
-//      break;
-//    case 3:
-//      lcd.setCursor(0, 0);
-//      lcd.print("Chinese Tea");
-//      break;
-//    case 4:
-//      lcd.setCursor(0, 0);
-//      lcd.print("Herbal Tea");
-//      break;
-//    case 5:
-//      lcd.setCursor(0, 0);
-//      lcd.print("Earl grey Tea");
-//      break;
-//  }
 }
 
 void dip(long _Time) {
   lcd.blink();
+  dipstate = 2;
+
+
   dipTime = _Time;
   for (pos = 100; pos <= 250; pos += 2) { // goes from 0 degrees to 180 degrees
     // in steps of 1 degree
     myservo.write(pos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
   }
+
   delay(dipTime);
 
   for (pos = 250; pos >= 100; pos -= 2) {
@@ -125,7 +116,6 @@ void dip(long _Time) {
   lcd.setCursor(0, 1);
   lcd.print("Done!");
   delay(3000);
-  reset();
 }
 
 void button_changeState() {
@@ -146,6 +136,10 @@ void button_changeState() {
       // only toggle if the new button state is HIGH
       if (buttonState2 == HIGH) {
         lcd.clear();
+        Serial.print("dipstate : ");
+        Serial.println(dipstate);
+        Serial.print("gstate : ");
+        Serial.println(gstate);
         if (gstate < 5) {
           gstate = gstate + 1;
         } else {
@@ -174,11 +168,16 @@ void StartDipButton() {
 
       // only toggle if the new button state is HIGH
       if (buttonState3 == HIGH) {
+        dipstate = 2;
+        Serial.print("dipstate : ");
+        Serial.println(dipstate);
+        Serial.print("gstate : ");
+        Serial.print(gstate);
         if (gstate == 0) {
           myservo.write(100); //reset servo position
         } else
+          delayStart = millis;
           dip(teatimer[gstate]);
-        dipstate = 1;
       }
     }
   }
@@ -189,5 +188,6 @@ void reset() {
   dipstate = 0;
   gstate = 0;
   lcd.clear();
+  lcd.noBlink();
 
 }
