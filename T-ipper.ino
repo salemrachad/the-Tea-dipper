@@ -46,8 +46,10 @@ unsigned long debounceDelay = 50;    // the debounce time; increase if the outpu
 
 unsigned long delayStart = 0; // the time the delay started
 bool delayRunning = false; // true if still waiting for delay to finish
-float Currentteatime;
-float currentTimerTime;
+
+signed short minutes, secondes;
+char timeline[16];
+bool started = false;
 
 void setup() {
   Serial.begin(9600);
@@ -62,6 +64,7 @@ void setup() {
   myservo.write(100);
   gstate = 0;
   dipstate = 1;
+
 }
 void loop() {
   button_changeState();
@@ -76,25 +79,14 @@ void loop() {
     lcd.setCursor(0, 0);
     lcd.print(teanames[gstate]);
     lcd.setCursor(0, 1);
-    if ((dipstate == 1) &&(gstate!=0)) {
-      lcd.print(teatimer[gstate] / 1000);
+      timerDisplay();
     }
-    else if ((dipstate == 2)&&(gstate!=0)) {
-      currentTimerTime = millis() - delayStart;
-      long dftimer = teatimer[gstate]-currentTimerTime;
-      lcd.print(currentTimerTime);
-      lcd.setCursor(5, 1);
-      lcd.print("seconds");
-    }
-//    lcd.setCursor(0, 0);
-//    lcd.print(teanames[gstate]);
-//    lcd.setCursor(0, 1);
-//    lcd.print(teatimer[gstate] / 1000);
   }
 }
 
 void dip(long _Time) {
   lcd.blink();
+  started = true;
   dipstate = 2;
 
 
@@ -115,6 +107,7 @@ void dip(long _Time) {
   lcd.clear();
   lcd.setCursor(0, 1);
   lcd.print("Done!");
+  started = false;
   delay(3000);
 }
 
@@ -184,10 +177,37 @@ void StartDipButton() {
   lastButtonState3 = reading;
 }
 
+
+
 void reset() {
   dipstate = 0;
   gstate = 0;
   lcd.clear();
   lcd.noBlink();
 
+}
+void timerDisplay(){
+
+minutes = teatimer[gstate];
+secondes = 59;
+
+lcd.setCursor(0, 1);
+sprintf(timeline,"%0.2d:%0.2d", minutes, secondes);
+lcd.print(timeline);
+
+if(started){}
+delay(1000);
+secondes--;
+
+if (secondes == 0)
+{
+  delay(1000);
+  secondes = 59;
+  minutes --;
+  if (minutes < 0){
+    minutes = 2;
+    secondes = 59;
+  }
+}
+}
 }
