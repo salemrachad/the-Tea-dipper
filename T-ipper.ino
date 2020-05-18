@@ -1,4 +1,5 @@
 #include <LiquidCrystal.h>
+#include <TimeLib.h>
 #include <Servo.h>
 /*
   The circuit:
@@ -23,8 +24,9 @@ Servo myservo;
 
 int pos = 0;    // variable to store the servo position
 String menu, black, green, chinese, herbal, earlgrey;
-long dipTime;
-unsigned long teatimer[] = {0, 5000, 10000, 20000, 30000, 180000};
+
+unsigned long teatimer[6] =    {0, 2, 4, 2, 10, 3};
+unsigned long teatimersec[6] = {0, 30, 0, 30, 0, 30};
 String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
 
 int gstate;
@@ -44,15 +46,15 @@ int lastButtonState3 = LOW;
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
-unsigned long dif;
-unsigned long currentTime = 0;
-unsigned long delayStart = 0; // the time the delay started
-bool delayRunning = false; // true if still waiting for delay to finish
-
-unsigned long time_now = 0;
 signed short minutes, secondes;
 char timeline[16];
-bool started = false;
+
+time_t currentTime = 0;
+time_t startTime = 0;
+time_t setupTime = 0;
+
+bool startbutton = false;
+
 
 void setup() {
   Serial.begin(9600);
@@ -60,11 +62,12 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
+  lcd.setCursor(0, 0);
   lcd.print("SUMMONING");
   lcd.setCursor(0, 1);
   lcd.print("TEA LORD!");
+  calibrate();
   delay(5000);
-  myservo.write(100);
   gstate = 0;
   dipstate = 1;
 
@@ -74,47 +77,117 @@ void loop() {
 
   button_changeState();
   StartDipButton();
-  Serial.println(teatimer[gstate]);
 
+  switch (gstate) {
 
-  if (gstate == 0) {  //menu
-    lcd.setCursor(0, 0);
-    lcd.print("I'ts tea Time ");
-    lcd.setCursor(0, 1);
-    lcd.print("<- Press Button");
-  } else {
-    lcd.setCursor(0, 0);
-    lcd.print(teanames[gstate]);
-    lcd.setCursor(0, 1);
-     printTimer();
+    case 0: //start screen
+      break;
+
+    default: //
+
+      switch (dipstate) {
+        case 1:
+          setupTime = teatimersec[gstate] + (60 * teatimer[gstate]) + (3600 * 0);
+          currentTime = setupTime;
+          break;
+
+        case 2: //Running
+
+          setupTime = teatimersec[gstate] + (60 * teatimer[gstate]) + (3600 * 0);
+          currentTime = setupTime - (now() - startTime);
+          if (currentTime <= 0)
+          {
+            dipstate = 3;
+            Serial.println(dipstate);
+          }
+          break;
+
+        case 3: //ringing - done!
+
+          //    analogWrite(buzzerPin, 20);
+          //    delay(20);
+          //    analogWrite(buzzerPin, 0);
+          //    delay(40);
+          delay(3000);
+          reset();
+          break;
+      }
   }
-}
 
-void dip(long _Time) {
-  lcd.blink();
-  started = true;
-  dipstate = 2;
-  dipTime = _Time;
+  //LCD SETUP
 
-  for (pos = 100; pos <= 250; pos += 2) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
+  switch (gstate) {
+
+    case 0: //start screen
+      lcd.setCursor(0, 0);
+      lcd.print("I'ts tea Time ");
+      lcd.setCursor(0, 1);
+      lcd.print("<- Press Button");
+      break;
+
+    default: //
+
+      switch (dipstate) {
+        case 1:
+          lcd.setCursor(0, 0);
+          lcd.print(teanames[gstate]);
+          lcd.setCursor(0, 1);
+          if (hour(currentTime) < 10) lcd.print("0");
+          lcd.print(hour(currentTime));
+          lcd.print(":");
+          if (minute(currentTime) < 10) lcd.print("0");
+          lcd.print(minute(currentTime));
+          lcd.print(":");
+          if (second(currentTime) < 10) lcd.print("0");
+          lcd.print(second(currentTime));
+          break;
+
+        case 2: //Running
+
+          lcd.setCursor(0, 0);
+          lcd.print("Brewing ...");
+          lcd.setCursor(0, 1);
+
+          if (hour(currentTime) < 10) lcd.print("0");
+          lcd.print(hour(currentTime));
+          lcd.print(":");
+          if (minute(currentTime) < 10) lcd.print("0");
+          lcd.print(minute(currentTime));
+          lcd.print(":");
+          if (second(currentTime) < 10) lcd.print("0");
+          lcd.print(second(currentTime));
+          break;
+
+        case 3: //ringing
+          lcd.setCursor(0, 0);
+          lcd.print("                ");
+          lcd.setCursor(0, 1);
+          lcd.print("done!   ");
+          break;
+      }
   }
 
-  delay(dipTime);
+  //Motor Setup
+  switch (gstate) {
 
-  for (pos = 250; pos >= 100; pos -= 2) {
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);      // waits 15ms for the servo to reach the position
+    case 0: //start screen
+      break;
+    default: //
+      switch (dipstate) {
+        case 1:
+          break;
+        case 2: //Running
+          dipperdown();
+          break; //ringing
+        case 3:
+          dipperup();
+          //    analogWrite(buzzerPin, 20);
+          //    delay(20);
+          //    analogWrite(buzzerPin, 0);
+          //    delay(40);
+          break;
+      }
   }
-  lcd.noBlink();
-  lcd.clear();
-  lcd.setCursor(0, 1);
-  lcd.print("Done!");
-  started = false;
-  delay(3000);
-  reset();
 }
 
 void button_changeState() {
@@ -164,12 +237,14 @@ void StartDipButton() {
 
       // only toggle if the new button state is HIGH
       if (buttonState3 == HIGH) {
-        started = true;
-        dipstate = 2;
+
         if (gstate == 0) {
           myservo.write(100); //reset servo position
         } else
-          dip(teatimer[gstate]);
+          lcd.clear();
+        startbutton = true;
+        startTime = now();
+        dipstate = 2;
       }
     }
   }
@@ -177,29 +252,21 @@ void StartDipButton() {
 }
 
 void reset() {
-  dipstate = 0;
+  dipstate = 1;
   gstate = 0;
-  started = false;
+  startbutton = false;
+  startTime = 0;
+  setupTime = 0;
   lcd.clear();
-  lcd.noBlink();
 }
 
-void printTimer() {
-  if(started==true) {
-    unsigned long currentTime = millis();
+void dipperdown() {
+  myservo.write(250);
 
-    if (currentTime - previousTime>=teatimer[gstate]){
-    previoustime = currentTime;
-    }
-    unsigned long dif = teatimer[gstate] - currentTime;
-
-    lcd.setCursor(0, 1);
-    sprintf(timeline, "%0.4d", dif);
-    lcd.print(timeline);
-  } if (started == false){
-    unsigned long dif = teatimer[gstate];
-    lcd.setCursor(0,1);
-    sprintf(timeline, "%0.4d", dif);
-    lcd.print(timeline);
-  }
+}
+void dipperup() {
+  myservo.write(100);
+}
+void calibrate() {
+  myservo.write(100);
 }
