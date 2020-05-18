@@ -22,12 +22,16 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 
 Servo myservo;
 
+const int buzzer = 5;
+
 int pos = 0;    // variable to store the servo position
 String menu, black, green, chinese, herbal, earlgrey;
 
-unsigned long teatimer[6] =    {0, 2, 4, 2, 10, 3};
-unsigned long teatimersec[6] = {0, 30, 0, 30, 0, 30};
+unsigned long teatimer[6] =    {0, 0, 4, 2, 10, 3};
+unsigned long teatimersec[6] = {0, 5, 0, 30, 0, 30};
 String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
+String randip[2] = {String("Brewing..."), String("Massaging Kale")};
+
 
 int gstate;
 int dipstate = 1;
@@ -58,6 +62,7 @@ bool startbutton = false;
 
 void setup() {
   Serial.begin(9600);
+  pinMode(buzzer, OUTPUT);
   myservo.attach(4);  // attaches the servo on pin 4 to the servo object
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
@@ -104,11 +109,9 @@ void loop() {
 
         case 3: //ringing - done!
 
-          //    analogWrite(buzzerPin, 20);
-          //    delay(20);
-          //    analogWrite(buzzerPin, 0);
-          //    delay(40);
+          analogWrite(buzzer, 20);
           delay(3000);
+          analogWrite(buzzer, 0);
           reset();
           break;
       }
@@ -145,6 +148,7 @@ void loop() {
         case 2: //Running
 
           lcd.setCursor(0, 0);
+          //          lcd.print(randip);
           lcd.print("Brewing ...");
           lcd.setCursor(0, 1);
 
@@ -181,10 +185,6 @@ void loop() {
           break; //ringing
         case 3:
           dipperup();
-          //    analogWrite(buzzerPin, 20);
-          //    delay(20);
-          //    analogWrite(buzzerPin, 0);
-          //    delay(40);
           break;
       }
   }
@@ -245,6 +245,7 @@ void StartDipButton() {
         startbutton = true;
         startTime = now();
         dipstate = 2;
+        //        String randip = randip[random(0,2)];
       }
     }
   }
