@@ -28,9 +28,9 @@ int pos = 0;    // variable to store the servo position
 String menu, black, green, chinese, herbal, earlgrey;
 
 unsigned long teatimer[6] =    {0, 0, 4, 2, 10, 3};
-unsigned long teatimersec[6] = {0, 5, 0, 30, 0, 30};
+unsigned long teatimersec[6] = {0, 10, 0, 30, 0, 30};
 String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
-String randip[2] = {String("Brewing..."), String("Massaging Kale")};
+String loading[2] = {String("Brewing..."), String("Massaging Kale")};
 
 
 int gstate;
@@ -100,17 +100,19 @@ void loop() {
 
           setupTime = teatimersec[gstate] + (60 * teatimer[gstate]) + (3600 * 0);
           currentTime = setupTime - (now() - startTime);
+
           if (currentTime <= 0)
           {
             dipstate = 3;
-            Serial.println(dipstate);
           }
           break;
 
         case 3: //ringing - done!
 
-          analogWrite(buzzer, 20);
-          delay(3000);
+          analogWrite(buzzer, 5);
+          delay(500);
+          analogWrite(buzzer, 12);
+          delay(800);
           analogWrite(buzzer, 0);
           reset();
           break;
@@ -148,7 +150,6 @@ void loop() {
         case 2: //Running
 
           lcd.setCursor(0, 0);
-          //          lcd.print(randip);
           lcd.print("Brewing ...");
           lcd.setCursor(0, 1);
 
@@ -207,8 +208,10 @@ void button_changeState() {
 
       // only toggle if the new button state is HIGH
       if (buttonState2 == HIGH) {
-        lcd.clear();
-
+         lcd.clear();
+      if(dipstate ==2){
+        gstate=gstate;
+      } else
         if (gstate < 5) {
           gstate = gstate + 1;
         } else {
@@ -262,6 +265,7 @@ void reset() {
 }
 
 void dipperdown() {
+
   myservo.write(250);
 
 }
