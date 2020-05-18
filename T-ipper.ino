@@ -1,6 +1,13 @@
 #include <LiquidCrystal.h>
 #include <TimeLib.h>
 #include <Servo.h>
+#include <Adafruit_NeoPixel.h>
+
+#define PIN      6
+#define N_LEDS 8
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+
 /*
   The circuit:
    LCD RS pin to digital pin 7
@@ -22,12 +29,16 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 
 Servo myservo;
 
+const int buzzer = 5;
+
 int pos = 0;    // variable to store the servo position
 String menu, black, green, chinese, herbal, earlgrey;
 
-unsigned long teatimer[6] =    {0, 2, 4, 2, 10, 3};
-unsigned long teatimersec[6] = {0, 30, 0, 30, 0, 30};
+unsigned long teatimer[6] =    {0, 0, 4, 2, 10, 3};
+unsigned long teatimersec[6] = {0, 5, 0, 30, 0, 30};
 String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
+String randip[2] = {String("Brewing..."), String("Massaging Kale")};
+
 
 int gstate;
 int dipstate = 1;
@@ -58,6 +69,10 @@ bool startbutton = false;
 
 void setup() {
   Serial.begin(9600);
+  pinMode(buzzer, OUTPUT);
+  strip.begin();
+  strip.show();
+
   myservo.attach(4);  // attaches the servo on pin 4 to the servo object
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
@@ -77,6 +92,7 @@ void loop() {
 
   button_changeState();
   StartDipButton();
+  loadingColor();
 
   switch (gstate) {
 
@@ -100,15 +116,14 @@ void loop() {
             dipstate = 3;
             Serial.println(dipstate);
           }
+
           break;
 
         case 3: //ringing - done!
 
-          //    analogWrite(buzzerPin, 20);
-          //    delay(20);
-          //    analogWrite(buzzerPin, 0);
-          //    delay(40);
+          analogWrite(buzzer, 20);
           delay(3000);
+          analogWrite(buzzer, 0);
           reset();
           break;
       }
@@ -145,6 +160,7 @@ void loop() {
         case 2: //Running
 
           lcd.setCursor(0, 0);
+          //          lcd.print(randip);
           lcd.print("Brewing ...");
           lcd.setCursor(0, 1);
 
@@ -178,13 +194,26 @@ void loop() {
           break;
         case 2: //Running
           dipperdown();
-          break; //ringing
-        case 3:
+          break;
+        case 3: //ringing
           dipperup();
-          //    analogWrite(buzzerPin, 20);
-          //    delay(20);
-          //    analogWrite(buzzerPin, 0);
-          //    delay(40);
+          break;
+      }
+  }
+
+  switch (gstate) { //led
+
+    case 0: //start screen
+      break;
+    default: //
+      switch (dipstate) {
+        case 1:
+          break;
+        case 2: //Running
+          //loadingColor();
+          break;
+        case 3://ringing
+
           break;
       }
   }
@@ -245,6 +274,7 @@ void StartDipButton() {
         startbutton = true;
         startTime = now();
         dipstate = 2;
+        //        String randip = randip[random(0,2)];
       }
     }
   }
@@ -269,4 +299,9 @@ void dipperup() {
 }
 void calibrate() {
   myservo.write(100);
+}
+void loadingColor() {
+  int redcolor = map(currentTime, setupTime, 0, 0, 50);
+  strip.setPixelColor(4, redcolor, 0, 0);
+  strip.show();
 }
