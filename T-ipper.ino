@@ -20,6 +20,17 @@
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 
+byte heart[] = {
+  0x00,
+  0x0A,
+  0x1F,
+  0x1F,
+  0x0E,
+  0x04,
+  0x00,
+  0x00
+};
+
 Servo myservo;
 
 const int buzzer = 5;
@@ -27,8 +38,8 @@ const int buzzer = 5;
 int pos = 0;    // variable to store the servo position
 String menu, black, green, chinese, herbal, earlgrey;
 
-unsigned long teatimer[6] =    {0, 0, 4, 2, 10, 3};
-unsigned long teatimersec[6] = {0, 10, 0, 30, 0, 30};
+unsigned long teatimer[6] =    {0, 2, 4, 2, 10, 3};
+unsigned long teatimersec[6] = {0, 30, 0, 30, 0, 0};
 String teanames[6] = {String("menu"), String("Black Tea"), String("Green Tea"), String("Chinese Tea"), String("Herbal Tea"), String("Earlgrey Tea")};
 String loading[2] = {String("Brewing..."), String("Massaging Kale")};
 
@@ -67,12 +78,13 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
+  lcd.createChar(1, heart);
   lcd.setCursor(0, 0);
   lcd.print("SUMMONING");
   lcd.setCursor(0, 1);
   lcd.print("TEA LORD!");
+  delay(3000);
   calibrate();
-  delay(5000);
   gstate = 0;
   dipstate = 1;
 
@@ -110,7 +122,7 @@ void loop() {
         case 3: //ringing - done!
 
           analogWrite(buzzer, 5);
-          delay(500);
+          delay(200);
           analogWrite(buzzer, 12);
           delay(800);
           analogWrite(buzzer, 0);
@@ -126,6 +138,8 @@ void loop() {
     case 0: //start screen
       lcd.setCursor(0, 0);
       lcd.print("I'ts tea Time ");
+      lcd.setCursor(14, 0);
+      lcd.write(1);
       lcd.setCursor(0, 1);
       lcd.print("<- Press Button");
       break;
@@ -148,7 +162,6 @@ void loop() {
           break;
 
         case 2: //Running
-
           lcd.setCursor(0, 0);
           lcd.print("Brewing ...");
           lcd.setCursor(0, 1);
@@ -208,11 +221,10 @@ void button_changeState() {
 
       // only toggle if the new button state is HIGH
       if (buttonState2 == HIGH) {
-         lcd.clear();
-      if(dipstate ==2){
-        gstate=gstate;
-      } else
-        if (gstate < 5) {
+        lcd.clear();
+        if (dipstate == 2) {
+          reset();
+        } else if (gstate < 5) {
           gstate = gstate + 1;
         } else {
           gstate = 1;
@@ -256,12 +268,14 @@ void StartDipButton() {
 }
 
 void reset() {
+
   dipstate = 1;
   gstate = 0;
   startbutton = false;
   startTime = 0;
   setupTime = 0;
   lcd.clear();
+  dipperup();
 }
 
 void dipperdown() {
