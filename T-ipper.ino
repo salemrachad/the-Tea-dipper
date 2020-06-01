@@ -237,7 +237,7 @@ void loop() {
             lcd.setCursor(0, 0);
           }
           else if ((currentTime < setupTime * 0.5) && (currentTime > setupTime * 0.3)) {
-            lcd.print("calling gypsy...");
+            lcd.print("charging crystals...");
              lcd.setCursor(11, 1);
             lcd.write(5);
             lcd.setCursor(0, 0);
@@ -344,7 +344,7 @@ void StartDipButton() {
       if (buttonState3 == HIGH) {
 
         if (gstate == 0) {
-          myservo.write(100); //reset servo position
+          calibrate(); //reset servo position
         } else
           lcd.clear();
         startbutton = true;
@@ -365,6 +365,7 @@ void reset() {
   startbutton = false;
   startTime = 0;
   setupTime = 0;
+  calibrate();
   lcd.clear();
 }
 
